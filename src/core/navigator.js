@@ -93,7 +93,7 @@ module.exports.loadData = function () {
   this.loadOverlays('south_1');
   this.loadOverlays('south_2');
 
-  const url = 'http://localhost:5050/admin/geojson/fetch';
+  const url = `${CONSTANTS.DEFAULT_ENDPOINT}/admin/geojson/fetch`;
 
   const headers = {
     'Content-Type': 'application/json'
@@ -121,7 +121,7 @@ module.exports.loadData = function () {
 module.exports.saveData = function (data) {
   const jwtToken = localStorage.getItem('jwt');
 
-  const url = 'http://localhost:5050/admin/geojson/post';
+  const url = `${CONSTANTS.DEFAULT_ENDPOINT}/admin/geojson/post`;
 
   const headers = {
     'Content-Type': 'application/json'
