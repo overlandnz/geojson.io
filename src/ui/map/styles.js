@@ -1,5 +1,33 @@
 module.exports = [
   {
+    title: 'Topographic',
+    style: {
+      version: 8,
+      sources: {
+        'nztopo-tiles': {
+          type: 'raster',
+          tiles: [
+            'https://basemaps.linz.govt.nz/v1/tiles/topo-raster/WebMercatorQuad/{z}/{x}/{y}.webp?api=c01k0x5sjp2cqpdwcmsyddp1jed'
+          ],
+          scheme: 'xyz',
+          tileSize: 256
+        }
+      },
+      layers: [
+        {
+          id: 'nztopo',
+          type: 'raster',
+          source: 'nztopo-tiles'
+        }
+      ]
+    }
+  },
+  {
+    title: 'Modern Topographic',
+    style:
+      'https://basemaps.linz.govt.nz/v1/styles/topographic.json?api=c01k0x5sjp2cqpdwcmsyddp1jed'
+  },
+  {
     title: 'Standard',
     style: 'mapbox://styles/mapbox/standard',
     config: {

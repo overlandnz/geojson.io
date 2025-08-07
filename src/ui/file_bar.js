@@ -10,7 +10,8 @@ const shpwrite = require('shp-write'),
 const flash = require('./flash'),
   zoomextent = require('../lib/zoomextent'),
   readFile = require('../lib/readfile'),
-  meta = require('../lib/meta.js');
+  meta = require('../lib/meta.js'),
+  navigator = require('../core/navigator.js');
 
 /**
  * This module provides the file picking & status bar above the map interface.
@@ -21,6 +22,13 @@ module.exports = function fileBar(context) {
   const shpSupport = typeof ArrayBuffer !== 'undefined';
 
   const exportFormats = [
+    {
+      title: 'Overland Navigator',
+      action: function () {
+        if (d3.event) d3.event.preventDefault();
+        navigator.saveData(context.data.get('map'));
+      }
+    },
     {
       title: 'GeoJSON',
       action: downloadGeoJSON
@@ -55,7 +63,30 @@ module.exports = function fileBar(context) {
       {
         title: 'Open',
         alt: 'CSV, GTFS, KML, GPX, and other filetypes',
-        action: blindImport
+        action: function () {
+          if (d3.event) d3.event.preventDefault();
+
+          let currentJWTToken = navigator.getToken();
+          console.log('Current JWT token:', currentJWTToken);
+
+          if (!currentJWTToken) {
+            let jwtToken = prompt(
+              'Enter JWT token for private repositories (optional)'
+            );
+
+            if (jwtToken === null) return;
+            jwtToken = jwtToken.trim();
+
+            if (jwtToken.length > 0) {
+              navigator.setToken(jwtToken);
+              context.data.set({ jwt: jwtToken });
+            }
+
+            currentJWTToken = jwtToken;
+          }
+
+          navigator.loadData();
+        }
       },
       {
         title: 'Save',
