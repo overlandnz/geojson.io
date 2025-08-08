@@ -1,5 +1,7 @@
 const CONSTANTS = require('../constants.js');
 
+window.navigator.hasLoaded = false;
+
 module.exports.getToken = function () {
   const token = localStorage.getItem('jwt') || null;
 
@@ -112,6 +114,8 @@ module.exports.loadData = function () {
     })
     .then((data) => {
       window.api.data.set({ map: data });
+
+      window.navigator.hasLoaded = true;
     })
     .catch((error) => {
       console.error('Error loading data:', error);
@@ -119,6 +123,11 @@ module.exports.loadData = function () {
 };
 
 module.exports.saveData = function (data) {
+  if (!window.navigator.hasLoaded) {
+    alert('Data has not been loaded yet. Please load data before saving.');
+    return;
+  }
+
   const jwtToken = localStorage.getItem('jwt');
 
   const url = `${CONSTANTS.DEFAULT_ENDPOINT}/admin/geojson/post`;
