@@ -89,3 +89,76 @@ export function postData(data: FeatureCollection) {
     body: JSON.stringify(data)
   });
 }
+
+type AnyGeometry = {
+  type: string;
+  coordinates?: unknown;
+  geometries?: unknown;
+};
+
+function isPosition(p: unknown): boolean {
+  return (
+    Array.isArray(p) &&
+    p.length >= 2 &&
+    typeof p[0] === 'number' &&
+    typeof p[1] === 'number'
+  );
+}
+
+function lineProblem(c: unknown): string | null {
+  if (!Array.isArray(c) || c.length < 2) return 'line needs 2+ points';
+  return c.every(isPosition) ? null : 'invalid coordinate';
+}
+
+function polygonProblem(c: unknown): string | null {
+  if (!Array.isArray(c) || c.length === 0) return 'polygon has no rings';
+  for (const ring of c) {
+    if (!Array.isArray(ring) || ring.length < 4) {
+      return 'polygon ring needs 4+ points';
+    }
+    if (!ring.every(isPosition)) return 'invalid coordinate';
+  }
+  return null;
+}
+
+/**
+ * Returns why a geometry would be rejected by the Navigator API
+ * (which converts to NetTopologySuite), or null if it's fine.
+ */
+export function geometryProblem(geometry: AnyGeometry | null): string | null {
+  if (!geometry) return 'no geometry';
+  const c = geometry.coordinates;
+  const each = (check: (x: unknown) => string | null) => {
+    if (!Array.isArray(c) || c.length === 0) return 'empty geometry';
+    for (const part of c) {
+      const p = check(part);
+      if (p) return p;
+    }
+    return null;
+  };
+  switch (geometry.type) {
+    case 'Point':
+      return isPosition(c) ? null : 'point has no coordinates';
+    case 'MultiPoint':
+      return each((p) => (isPosition(p) ? null : 'invalid coordinate'));
+    case 'LineString':
+      return lineProblem(c);
+    case 'MultiLineString':
+      return each(lineProblem);
+    case 'Polygon':
+      return polygonProblem(c);
+    case 'MultiPolygon':
+      return each(polygonProblem);
+    case 'GeometryCollection': {
+      const g = geometry.geometries;
+      if (!Array.isArray(g) || g.length === 0) return 'empty collection';
+      for (const child of g as AnyGeometry[]) {
+        const p = geometryProblem(child);
+        if (p) return p;
+      }
+      return null;
+    }
+    default:
+      return `unknown geometry type ${geometry.type}`;
+  }
+}

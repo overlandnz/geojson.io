@@ -8,6 +8,7 @@ import { newFeatureId } from 'app/lib/id';
 import {
   fetchData,
   fetchOverlay,
+  geometryProblem,
   getToken,
   NAVIGATOR_OVERLAY_IDS,
   postData,
@@ -15,11 +16,12 @@ import {
 } from 'app/lib/navigator';
 import { usePersistence } from 'app/lib/persistence/context';
 import { generateNKeysBetween } from 'fractional-indexing';
-import { useAtomValue } from 'jotai';
+import { useAtomValue, useSetAtom } from 'jotai';
 import type mapboxgl from 'mapbox-gl';
 import { memo, useCallback, useContext, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { dataAtom } from 'state/jotai';
+import { USelection } from 'state';
+import { dataAtom, selectionAtom } from 'state/jotai';
 import type { FeatureCollection } from 'types';
 import { UWrappedFeature } from 'types';
 
@@ -86,6 +88,7 @@ export const NavigatorControls = memo(function NavigatorControls() {
   const rep = usePersistence();
   const transact = rep.useTransact();
   const { featureMap } = useAtomValue(dataAtom);
+  const setSelection = useSetAtom(selectionAtom);
   // In-memory only: a page reload requires loading from the API again
   // before saving (blank save protection).
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -180,11 +183,39 @@ export const NavigatorControls = memo(function NavigatorControls() {
     ) {
       return;
     }
+    // The API rejects the whole save if any geometry is broken
+    // (e.g. a polygon with no rings), so check first.
+    const all = Array.from(featureMap.values());
+    const invalid = all.flatMap((wf) => {
+      const problem = geometryProblem(wf.feature.geometry);
+      return problem ? [{ wf, problem }] : [];
+    });
+    let toSave = all;
+    if (invalid.length > 0) {
+      const list = invalid
+        .slice(0, 10)
+        .map(({ wf, problem }) => {
+          const name = wf.feature.properties?.name ?? '(unnamed)';
+          return `• ${String(name)} — ${wf.feature.geometry?.type ?? 'none'}: ${problem}`;
+        })
+        .join('\n');
+      const more =
+        invalid.length > 10 ? `\n…and ${invalid.length - 10} more` : '';
+      const skip = window.confirm(
+        `${invalid.length} feature(s) have broken geometry and would make the save fail:\n\n${list}${more}\n\n` +
+          'OK = save without them (they will be removed).\n' +
+          'Cancel = select them so you can fix or delete them.'
+      );
+      if (!skip) {
+        setSelection(USelection.fromIds(invalid.map(({ wf }) => wf.id)));
+        return;
+      }
+      const bad = new Set(invalid.map(({ wf }) => wf.id));
+      toSave = all.filter((wf) => !bad.has(wf.id));
+    }
     setBusy(true);
     try {
-      const body = UWrappedFeature.toFeatureCollection(
-        Array.from(featureMap.values())
-      );
+      const body = UWrappedFeature.toFeatureCollection(toSave);
       const saved = await postData(body);
       await replaceFeatures(saved, 'Saved to Overland Navigator');
       toast.success('Data saved successfully!');
@@ -195,7 +226,7 @@ export const NavigatorControls = memo(function NavigatorControls() {
     } finally {
       setBusy(false);
     }
-  }, [hasLoaded, featureMap, replaceFeatures]);
+  }, [hasLoaded, featureMap, replaceFeatures, setSelection]);
 
   return (
     <div className="flex items-center border-r border-gray-200 dark:border-gray-700 pr-2 mr-1">
