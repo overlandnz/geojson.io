@@ -38,6 +38,7 @@ import { Suspense, useContext, useLayoutEffect, useRef, useState } from 'react';
 import { Button } from './elements';
 import { FeatureEditorFolder } from './panels/feature_editor/feature_editor_folder';
 import { Visual } from './visual';
+import { NavigatorControls } from './navigator_controls';
 import { UrlAPI } from './url_api';
 import { splitsAtom } from 'state/jotai';
 
@@ -100,6 +101,7 @@ export function GeojsonIO() {
                 <ContextActions />
                 <div className="flex-auto" />
                 <div className="flex items-center space-x-2">
+                  <NavigatorControls />
                   <Visual />
                 </div>
               </div>

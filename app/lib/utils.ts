@@ -308,6 +308,8 @@ export async function get<T extends z.ZodType<unknown>>(
 }
 
 export function getMapboxLayerURL(layer: IStyleConfigUrl) {
+  // Non-Mapbox style URLs (e.g. LINZ basemaps) are used as-is.
+  if (!layer.url.startsWith('mapbox://')) return layer.url;
   return (
     layer.url.replace('mapbox://styles/', 'https://api.mapbox.com/styles/v1/') +
     `?optimize=true&access_token=${layer.token}`

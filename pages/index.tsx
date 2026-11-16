@@ -14,13 +14,6 @@ import { QueryClient, QueryClientProvider } from 'react-query';
 const queryClient = new QueryClient();
 const store = createStore();
 
-// initialize mapbox analytics
-// @ts-expect-error - loaded from external script
-initializeMapboxAnalytics({
-  segmentWriteKeyStaging: 'fl0c8p240n',
-  marketoMunchkin: false
-});
-
 function App() {
   const idMap = useRef(UIDMap.empty());
   return (

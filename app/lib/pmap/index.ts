@@ -283,6 +283,16 @@ export default class PMap {
     map.setProjection(this.lastStyleOptions?.mapProjection ?? 'globe');
     // Load maki icons as SDF so they can be recolored via icon-color.
     void loadMakiIcons(map);
+    // setStyle() re-applies data after a fixed 100ms delay; on slow connections
+    // the style isn't loaded by then and features never reach the new source.
+    // Re-apply once the style has actually loaded.
+    if (this.lastData) {
+      this.setData({
+        data: this.lastData,
+        ephemeralState: this.lastEphemeralState,
+        force: true
+      });
+    }
   };
 
   onMapDoubleClick = (e: mapboxgl.MapMouseEvent) => {
